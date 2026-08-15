@@ -11,6 +11,12 @@ the documented `genlayer-js` provider-backed wallet flow for writes. Bradbury
 testing includes both deterministic cancellation/refund paths and a completed
 two-sided, public-source resolution followed by a winning claim.
 
+## Live Release
+
+- Application: [genlayer-outcome-market.vercel.app](https://genlayer-outcome-market.vercel.app/)
+- Bradbury contract: [`0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4`](https://explorer-bradbury.genlayer.com/address/0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4)
+- Deployment evidence and lifecycle results: [Bradbury test report](docs/TEST_REPORT.md)
+
 ## Backend Design
 
 - Parimutuel settlement: every claim is covered by collateral already held by

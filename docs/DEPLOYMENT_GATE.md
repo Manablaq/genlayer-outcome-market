@@ -22,8 +22,8 @@ Do not deploy this backend to Bradbury until every item below is complete.
 5. For both a complete resolved market and a complete cancelled market, verify
    `accounted_balance()` is zero.
 
-The frontend can expose the completed deterministic flows after their Bradbury
-tests pass, but it must continue to label source resolution as pending until a
-clear-source strict-consensus test is recorded. It must call `take_position`
-with wallet `value` only, and it must not treat consensus status alone as a
-successful state change.
+The frontend may expose source resolution as completed only after a
+clear-source strict-consensus test is recorded in the Bradbury report. That
+test is recorded for Market `5` in [`TEST_REPORT.md`](TEST_REPORT.md). The UI
+must call `take_position` with wallet `value` only, and it must not treat
+consensus status alone as a successful state change.

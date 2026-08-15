@@ -4,6 +4,8 @@
 
 - Contract: `0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4`
 - Network: GenLayer Bradbury Testnet
+- Live application: <https://genlayer-outcome-market.vercel.app/>
+- Contract explorer: <https://explorer-bradbury.genlayer.com/address/0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4>
 - Deployment transaction:
   `0x4ed3dfc0a39aa2c82322c7c4698f1d11e121c8160b3409e665085e7541cc0228`
 - Initial reads: `get_market_count() = 0`, `accounted_balance() = 0`
