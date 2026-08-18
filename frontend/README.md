@@ -1,60 +1,53 @@
-# Outcome Market App
+# Outcome Market Frontend
 
-The browser app is a direct Bradbury interface for the deployed Outcome Market
-contract at `0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4`.
+Vite and React interface for the Outcome Market contract on GenLayer Bradbury.
 
-## What it does
+## Contract configuration
 
-- Reads the market index, market state, pools, and account positions through
-  `genlayer-js` `readContract` calls.
-- Connects an EIP-1193 browser wallet and uses the SDK's documented
-  provider-backed `writeContract` flow for every state-changing call.
-- Waits for an `ACCEPTED` receipt and explicitly requires
-  `FINISHED_WITH_RETURN` before reporting a write as successful.
-- Exposes the full contract lifecycle: market creation, YES/NO positions,
-  closure, source-backed resolution, cancellation, and claims.
-- Provides a responsive product experience around those direct contract calls:
-  an evidence-focused landing page, searchable market explorer, status filters,
-  local watchlists, expandable policy inspection, and a built-in developer
-  reference.
-- Includes a persisted light/dark theme and motion that automatically reduces
-  when the visitor has enabled reduced-motion preferences.
-
-## Product navigation
-
-- **How it works** documents the on-chain lifecycle from immutable market
-  registration through exact claim or refund paths.
-- **Markets** is the operational workspace. Search and filters are local UI
-  conveniences; market state, positions, collateral, and lifecycle actions are
-  always read from or sent to the contract.
-- **Documentation** explains the contract boundary and includes a minimal
-  `genlayer-js` read example. The explorer link always points to the deployed
-  contract, not a copied interface definition.
-
-The watchlist and color theme are stored only in the current browser's local
-storage. They never create on-chain state and do not affect market settlement.
-
-## Run locally
+Create `frontend/.env.local` from `.env.example` and set the full corrected deployment address:
 
 ```bash
-cd frontend
-npm install
+VITE_CONTRACT_ADDRESS=0xYOUR_CORRECTED_BRADBURY_ADDRESS
+```
+
+The application fails closed for writes when the value is missing, malformed, the zero address, or the known legacy address. Legacy market data remains readable for historical transparency, but the UI will not create or resolve markets against that deployment.
+
+## Local development
+
+```bash
+npm ci
 npm run dev
 ```
 
-When the default Vite port is occupied, Vite selects the next available local
-port and prints it in the terminal. The app includes `outcome-market-hero.png`
-as a local public asset, so no third-party image host is required for the
-landing page.
+Production verification:
 
-The wallet must be on GenLayer Bradbury. When a transaction requires GEN
-collateral, enter a decimal GEN amount in the app; it is converted to integer
-wei before the payable contract call is sent.
+```bash
+npm run build
+npm audit --omit=dev
+```
 
-## Safety boundary
+## Evidence-aware behavior
 
-The UI never calculates or selects a settlement payout. It displays the
-contract's pools and lifecycle fields. Resolution happens on-chain: the
-contract snapshots the registered source policy, validators independently fetch
-and evaluate it, and strict equivalence binds the canonical outcome and
-confidence before settlement state is stored.
+The creation form requires:
+
+- a named authority and authoritative HTTPS source;
+- a source observation timestamp and 64-character lowercase source digest;
+- a canonical record ID;
+- two immutable raw GitHub URLs pinned to full commit SHAs;
+- records from different repositories;
+- publication and expiry timestamps;
+- a resolution deadline no later than evidence expiry.
+
+Evidence records cannot contain an `Outcome` header. They provide versioned,
+corroborated provenance and non-empty evidence bodies; validators independently
+apply the registered policy and derive the exact result and confidence.
+
+Resolution controls are disabled when the deployment is legacy, evidence metadata is absent, or the evidence window is stale. The contract remains the final enforcement boundary; these checks make unsafe states visible before a transaction is attempted.
+
+## Production deployment
+
+1. Deploy the corrected contract source to Bradbury.
+2. Add `VITE_CONTRACT_ADDRESS` to the production environment.
+3. Redeploy the frontend from the matching repository commit.
+4. Verify the contract link opens the corrected Explorer address.
+5. Exercise a read and write flow before publishing submission evidence.

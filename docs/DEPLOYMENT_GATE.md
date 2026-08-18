@@ -1,29 +1,54 @@
 # Deployment Gate
 
-Do not deploy this backend to Bradbury until every item below is complete.
+Do not resubmit until every gate is complete.
 
 ## Source Gate
 
-1. Run `python3 -m unittest discover -s tests -v`.
-2. Run `PYTHONPYCACHEPREFIX=/private/tmp/outcome-market-pycache python3 -m py_compile contracts/outcome_market.py`.
-3. Review `contracts/outcome_market.py` for exactly one `strict_eq` resolution
-   call and no `run_nondet_unsafe` resolver.
-4. In Studio, confirm GenVM lint reports no nested non-determinism or storage
-   mutation in `_evaluate_resolution_snapshot`.
+1. Run the Python unit suite and compilation checks.
+2. Run `npm run build` and `npm audit` in `frontend`.
+3. Run GenVM lint on the exact deployment file.
+4. Confirm the resolver uses one `strict_eq` callback containing exactly two
+   renders and one policy judgment, with no nested non-determinism, storage
+   writes, or transfers.
+5. Record the commit SHA and SHA-256 of `contracts/outcome_market.py`.
+
+## Evidence Gate
+
+1. Publish a primary and corroborating fixture in different repositories.
+2. Pin both raw URLs to full lowercase commit SHAs.
+3. Record the named authority, HTTPS authoritative source, observation time,
+   and lowercase 64-character source digest before market creation.
+4. Confirm both records use the exact canonical header set, contain no
+   `Outcome` header, include a non-empty evidence body, and remain current for
+   the full resolution window.
+5. Independently retain the original source bytes and off-chain SHA-256
+   calculation so reviewers can reproduce the creator-declared digest.
 
 ## Bradbury Gate
 
-1. Deploy the exact committed source through GenLayer Studio.
-2. Record contract address, deployment transaction hash, commit SHA, file byte
-   count, and SHA-256 in `docs/TEST_REPORT.md`.
-3. Complete the negative and positive scenarios in `docs/TEST_PLAN.md`.
-4. Wait for finalization and verify each write's execution result, not merely
-   its consensus status.
-5. For both a complete resolved market and a complete cancelled market, verify
-   `accounted_balance()` is zero.
+1. Deploy the exact committed corrected source as a new contract.
+2. Record the new address and accepted deployment transaction.
+3. Verify Explorer source matches the repository byte-for-byte.
+4. Run the full smoke matrix in `TEST_PLAN.md`.
+5. Wait for finalization and verify execution results, not consensus labels
+   alone.
+6. Confirm complete resolved and cancelled flows return
+   `accounted_balance()` to zero.
+7. Demonstrate that stale observations, provenance mismatches, record-supplied
+   outcomes, and contradictory evidence all fail without changing market state.
 
-The frontend may expose source resolution as completed only after a
-clear-source strict-consensus test is recorded in the Bradbury report. That
-test is recorded for Market `5` in [`TEST_REPORT.md`](TEST_REPORT.md). The UI
-must call `take_position` with wallet `value` only, and it must not treat
-consensus status alone as a successful state change.
+## Frontend Gate
+
+1. Set `VITE_CONTRACT_ADDRESS` to the new corrected Bradbury address.
+2. Redeploy the app and verify its explorer link targets that address.
+3. Confirm malformed, zero, legacy, or missing addresses leave corrected writes
+   disabled.
+4. Exercise create, stake, close, resolve, cancel, and claim from the deployed
+   app.
+
+## Submission Gate
+
+The resubmission Explorer link must be the new corrected address. Do not reuse
+the legacy address. Update `TEST_REPORT.md` only with observed hashes and
+finalized results; never insert placeholders or describe a pending test as
+passed.

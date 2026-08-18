@@ -1,52 +1,94 @@
-# Backend Test Plan
+# Outcome Market Test Plan
 
-## Local Regression Tests
+This plan verifies the corrected evidence-bound release before it is submitted for review. A release passes only when the repository source, deployed source, frontend configuration, and recorded Bradbury behavior all match.
 
-Run:
+## 1. Local release gate
 
-```sh
-python3 -m unittest discover -s tests -v
-python3 -m py_compile contracts/outcome_market.py
+Run from the repository root:
+
+```bash
+PYTHONPYCACHEPREFIX=/private/tmp/outcome-market-pycache \
+  python3 -m py_compile contracts/outcome_market.py tests/test_outcome_market_invariants.py
+
+PYTHONPYCACHEPREFIX=/private/tmp/outcome-market-pycache \
+  python3 -m unittest discover -s tests -p 'test_outcome_market_invariants.py' -v
+
+cd frontend
+npm ci
+npm run build
+npm audit --omit=dev
 ```
 
-The unit suite covers:
+Then run `git diff --check` from the repository root.
 
-- canonical resolution normalization and invalid outcome rejection;
-- confidence threshold behavior;
-- exact payout conservation with integer-division rounding;
-- prevention of winning-stake accounting overflow; and
-- cancellation/refund and resolved/unresolved state transitions using the same
-  contract methods that Studio exposes; and
-- the contract source boundary: strict equivalence is used for resolution, and
-  the evaluator contains no storage write or transfer.
+## 2. Contract invariant coverage
 
-## GenVM Lint Gate
+The automated suite must prove:
 
-Before deployment, run GenVM lint in Studio or the GenLayer CLI. A deployable
-build must have no lint finding for nested non-determinism or a storage write
-inside `_evaluate_resolution_snapshot`.
+1. Resolution accepts only the canonical result schema.
+2. Every consequential result field is compared exactly.
+3. Unexpected or mismatched result fields are rejected.
+4. Evidence records must use the exact canonical header set and bind schema,
+   record ID, question, policy, authority, authoritative source, source
+   observation, source digest, publication, and expiry.
+5. Record bodies must be non-empty, and any record-supplied `Outcome` header is
+   rejected.
+6. Evidence URLs must be immutable raw GitHub URLs pinned to full 40-character
+   commit SHAs.
+7. Primary and corroborating records must come from different repositories.
+8. Source observation must not follow publication, and publication must occur
+   no more than 24 hours after observation.
+9. Publication and expiry windows are checked at market creation and
+   resolution; expired evidence cannot settle a market.
+10. Contradictory or inconclusive bodies cannot produce a settlement.
+11. Malformed independent policy judgments fail closed.
+12. Resolution performs exactly two renders and one policy judgment inside one
+   validator callback.
+13. The validator callback performs no storage writes or transfers.
+14. The canonical payload binds every provenance field plus the independently
+   derived outcome and confidence.
+15. Payouts are derived only from recorded pools and winning positions.
+16. Cancellation and one-sided-market refunds return exact unclaimed stakes.
+17. A provenance or source-digest mismatch cannot change market state.
 
-## Bradbury Smoke Matrix
+## 3. GenVM checks
 
-The deployed source must be the same commit tested locally. Run and record each
-of these calls in the deployment report:
+Before deployment, run the current GenVM lint/deployment preflight against `contracts/outcome_market.py` and retain the complete output. The release must have no forbidden nested non-determinism and no storage writes inside the non-deterministic callback.
 
-| Scenario | Expected invariant |
-| --- | --- |
-| Stake before close | YES/NO pool and `total_staked` grow by the sent GEN value. |
-| Stake after close | Reverts; no new collateral is accepted. |
-| One-sided closed market | Cancellation is allowed; each position is refunded exactly. |
-| Ambiguous source | Resolution changes no storage; market remains closed. |
-| Resolution after deadline | Reverts; cancellation remains available. |
-| Clear source, strict consensus | Stored outcome and canonical confidence `10000` come from exact validator agreement. |
-| Two winning claims with a remainder | Total paid equals `total_staked`, including rounding dust. |
-| Full settlement or refunds | `accounted_balance()` returns zero. |
+## 4. Bradbury smoke matrix
 
-## Frontend Gate
+Use the newly deployed corrected contract. Do not reuse the legacy deployment.
 
-The interface is permitted after the local suite and the deterministic Bradbury
-refund paths pass. It must read market state from the contract, use `value`
-only for `take_position`, and wait for the transaction's execution result
-rather than treating consensus status alone as a state change. Before a public
-claim that source resolution is production-ready, the clear-source strict
-consensus scenario must also be recorded in the Bradbury report.
+| ID | Scenario | Expected result |
+|---|---|---|
+| B1 | Create with a branch, tag, web page, or short Git SHA URL | Rejected |
+| B2 | Create with both evidence records from the same repository | Rejected |
+| B3 | Create with observation after publication, observation over 24 hours old, future publication, expired record, deadline beyond expiry, or validity over 31 days | Rejected |
+| B4 | Create with two matching, fresh, commit-pinned records whose bodies support YES | Accepted |
+| B5 | Resolve B4 after close | `resolved`, outcome `yes`, confidence `10000` |
+| B6 | Claim a winning B4 position | Exact pool-derived payout; liability decreases by the same amount |
+| B7 | Create with two matching, fresh, commit-pinned records whose bodies support NO | Accepted |
+| B8 | Resolve B7 after close | `resolved`, outcome `no`, confidence `10000` |
+| B9 | Resolve records whose bodies support contradictory decisions | Transaction fails; market remains unresolved |
+| B10 | Resolve records with mismatched authority, source, observation, digest, ID, question, policy, or timestamps | Transaction fails; market remains unresolved |
+| B11 | Resolve a record with an `Outcome` header, missing header, extra header, or empty body | Transaction fails; market remains unresolved |
+| B12 | Let evidence expire before resolution | Resolution rejected; cancellation enabled |
+| B13 | Cancel and claim refunds | Each position receives its exact original unclaimed stake |
+| B14 | Complete all claims/refunds | `accounted_balance` returns `0` |
+
+For each row, record the transaction ID, status, relevant read-method output, and finalization state in [TEST_REPORT.md](TEST_REPORT.md).
+
+## 5. Source and frontend match
+
+Before resubmission:
+
+- Compare the Explorer source with the repository contract byte-for-byte.
+- Record the repository commit SHA used for deployment.
+- Set `VITE_CONTRACT_ADDRESS` to the corrected Bradbury address.
+- Build and redeploy the frontend.
+- Confirm the production site links to the corrected Explorer address.
+- Confirm the UI refuses resolution for legacy, unversioned, or expired evidence.
+
+## Pass condition
+
+Submission is ready only when every local check passes, GenVM preflight is clean, the required Bradbury rows are finalized, and all public links point to the corrected matching release.

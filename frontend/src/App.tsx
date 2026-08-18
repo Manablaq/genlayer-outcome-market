@@ -32,6 +32,7 @@ import {
   X,
 } from "lucide-react";
 import {
+  CORRECTED_DEPLOYMENT_CONFIGURED,
   CONTRACT_ADDRESS,
   EXPLORER_ADDRESS,
   MarketRecord,
@@ -135,7 +136,7 @@ export default function App() {
     const normalizedQuery = query.trim().toLowerCase();
     return [...markets]
       .filter((market) => filter === "all" || market.status === filter)
-      .filter((market) => !normalizedQuery || `${market.question} ${market.source_url} ${market.resolution_policy}`.toLowerCase().includes(normalizedQuery))
+      .filter((market) => !normalizedQuery || `${market.question} ${market.authority_name} ${market.authoritative_source_url} ${market.source_digest} ${market.evidence_record_id} ${market.primary_evidence_url} ${market.corroboration_evidence_url} ${market.resolution_policy}`.toLowerCase().includes(normalizedQuery))
       .sort((first, second) => {
         if (sortOrder === "liquidity") return Number(second.total_staked - first.total_staked);
         if (sortOrder === "closing") return Number(first.close_ts - second.close_ts);
@@ -268,23 +269,61 @@ export default function App() {
 
   async function createMarket(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!CORRECTED_DEPLOYMENT_CONFIGURED) {
+      setNotice({ tone: "error", message: "Market creation is disabled until the corrected versioned-evidence contract address is configured." });
+      return;
+    }
     const form = new FormData(event.currentTarget);
+    const authorityName = String(form.get("authorityName") ?? "").trim();
+    const authoritativeSourceUrl = String(form.get("authoritativeSourceUrl") ?? "").trim();
+    const sourceDigest = String(form.get("sourceDigest") ?? "").trim().toLowerCase();
+    const sourceObservedAt = new Date(String(form.get("sourceObservedAt"))).getTime();
+    const evidencePublishedAt = new Date(String(form.get("evidencePublishedAt"))).getTime();
+    const evidenceExpiresAt = new Date(String(form.get("evidenceExpiresAt"))).getTime();
     const closeAt = new Date(String(form.get("closeAt"))).getTime();
     const deadlineAt = new Date(String(form.get("deadlineAt"))).getTime();
-    if (!Number.isFinite(closeAt) || !Number.isFinite(deadlineAt)) {
-      setNotice({ tone: "error", message: "Set both a close time and a resolution deadline." });
+    if (![sourceObservedAt, evidencePublishedAt, evidenceExpiresAt, closeAt, deadlineAt].every(Number.isFinite)) {
+      setNotice({ tone: "error", message: "Set the source observation, evidence publication, evidence expiry, trading close, and resolution deadline times." });
+      return;
+    }
+    if (!authorityName || !authoritativeSourceUrl.startsWith("https://") || !/^[0-9a-f]{64}$/.test(sourceDigest)) {
+      setNotice({ tone: "error", message: "Provide an authority, an HTTPS authoritative source, and its 64-character lowercase SHA-256 digest." });
       return;
     }
     if (closeAt <= Date.now() || deadlineAt <= closeAt) {
       setNotice({ tone: "error", message: "Close time must be in the future and the resolution deadline must be later." });
       return;
     }
+    if (evidencePublishedAt > Date.now() || evidencePublishedAt > closeAt) {
+      setNotice({ tone: "error", message: "The evidence publication time cannot be in the future or after trading closes." });
+      return;
+    }
+    if (sourceObservedAt > Date.now() || sourceObservedAt > evidencePublishedAt || evidencePublishedAt - sourceObservedAt > 86_400_000) {
+      setNotice({ tone: "error", message: "The authoritative source must have been observed no more than 24 hours before the evidence records were published." });
+      return;
+    }
+    if (evidenceExpiresAt <= Date.now() || evidenceExpiresAt < deadlineAt) {
+      setNotice({ tone: "error", message: "The evidence must remain fresh through the full resolution deadline." });
+      return;
+    }
+    if (evidenceExpiresAt <= evidencePublishedAt || evidenceExpiresAt - evidencePublishedAt > 2_678_400_000) {
+      setNotice({ tone: "error", message: "The evidence validity window must be positive and no longer than 31 days." });
+      return;
+    }
     const completed = await submitTransaction(
       "create_market",
       [
         String(form.get("question") ?? "").trim(),
-        String(form.get("sourceUrl") ?? "").trim(),
         String(form.get("policy") ?? "").trim(),
+        authorityName,
+        authoritativeSourceUrl,
+        Math.floor(sourceObservedAt / 1000),
+        sourceDigest,
+        String(form.get("recordId") ?? "").trim(),
+        String(form.get("primaryEvidenceUrl") ?? "").trim(),
+        String(form.get("corroborationEvidenceUrl") ?? "").trim(),
+        Math.floor(evidencePublishedAt / 1000),
+        Math.floor(evidenceExpiresAt / 1000),
         Math.floor(closeAt / 1000),
         Math.floor(deadlineAt / 1000),
       ],
@@ -355,7 +394,7 @@ export default function App() {
           <div className="hero-kicker"><span className="live-dot" /> Source-backed GEN markets, live on Bradbury</div>
           <h1 id="app-title">A prediction market that settles from evidence, not vibes.</h1>
           <p>
-            Register the proposition, public source, and decision rule before anyone trades. The market only resolves when validators reach exact agreement on what that source proves.
+            Register the proposition, named authority, observed source digest, two independently maintained commit-pinned evidence records, and freshness window before anyone trades. Validators derive the outcome by applying the locked policy to both records.
           </p>
           <div className="hero-actions">
             <button className="primary-button hero-primary" type="button" onClick={() => goTo("markets")}><CircleDollarSign size={18} /> Explore markets</button>
@@ -365,13 +404,13 @@ export default function App() {
         <div className="hero-proof" data-reveal>
           <div><ShieldCheck size={18} /><span>Strict outcome agreement</span></div>
           <div><Landmark size={18} /><span>Pool-derived settlement</span></div>
-          <div><FileSearch size={18} /><span>Public-source resolution</span></div>
+          <div><FileSearch size={18} /><span>Versioned corroboration</span></div>
         </div>
       </section>
 
       <section className="protocol-strip" aria-label="Protocol guarantees">
-        <div data-reveal><span className="protocol-number">01</span><p><strong>Immutable premise</strong>Question, source, policy, and time windows are locked when the market is created.</p></div>
-        <div data-reveal><span className="protocol-number">02</span><p><strong>Independent review</strong>Validators apply the registered rule to the registered source, not a trusted resolver output.</p></div>
+        <div data-reveal><span className="protocol-number">01</span><p><strong>Immutable premise</strong>Question, policy, authority, source observation, digest, pinned records, and validity window are locked at creation.</p></div>
+        <div data-reveal><span className="protocol-number">02</span><p><strong>Independent review</strong>Validators treat record bodies as untrusted evidence, verify exact provenance and freshness, then independently apply the registered rule.</p></div>
         <div data-reveal><span className="protocol-number">03</span><p><strong>Defined exits</strong>Exact claims after resolution, or exact stake refunds when a market is cancelled.</p></div>
       </section>
 
@@ -398,9 +437,9 @@ export default function App() {
           <p>Outcome Market separates the only two questions that matter: what the registered evidence proves, and how funds are distributed once that answer is final.</p>
         </div>
         <div className="lifecycle" data-reveal>
-          <article><span>01</span><div><h3>Define</h3><p>Creator registers a binary question, a public source URL, an explicit decision policy, and time bounds.</p></div></article>
+          <article><span>01</span><div><h3>Define</h3><p>Creator locks a binary question, policy, named authority, observed HTTPS source and digest, two pinned records, and explicit time bounds.</p></div></article>
           <article><span>02</span><div><h3>Trade</h3><p>Participants stake GEN on YES or NO while the market is open. The contract records every position.</p></div></article>
-          <article><span>03</span><div><h3>Verify</h3><p>After close, validators independently fetch the source and apply the same policy to a canonical result.</p></div></article>
+          <article><span>03</span><div><h3>Verify</h3><p>After close, validators verify exact provenance and freshness across both records, then independently derive one outcome and confidence under the locked policy.</p></div></article>
           <article><span>04</span><div><h3>Settle</h3><p>Winners claim a pool-derived share. Unresolvable or one-sided markets use deterministic refunds.</p></div></article>
         </div>
       </section>
@@ -414,9 +453,11 @@ export default function App() {
           </div>
           <div className="section-actions">
             <button className="icon-button" type="button" onClick={() => void refresh()} disabled={loading || submitting} title="Refresh markets"><RefreshCw size={18} className={loading ? "spin" : ""} /></button>
-            <button className="primary-button" type="button" onClick={() => setCreateOpen((current) => !current)}><Plus size={18} /> Create market</button>
+            <button className="primary-button" type="button" disabled={!CORRECTED_DEPLOYMENT_CONFIGURED} onClick={() => setCreateOpen((current) => !current)} title={!CORRECTED_DEPLOYMENT_CONFIGURED ? "Configure the corrected deployment address to create markets" : "Create a versioned-evidence market"}><Plus size={18} /> Create market</button>
           </div>
         </div>
+
+        {!CORRECTED_DEPLOYMENT_CONFIGURED && <div className="deployment-warning"><AlertCircle size={19} /><div><strong>Legacy deployment is read-only.</strong><p>Set <code>VITE_CONTRACT_ADDRESS</code> to the corrected Bradbury deployment before creating or resolving markets. Existing legacy markets remain visible for audit history.</p></div></div>}
 
         {createOpen && <CreateMarketForm submitting={submitting} close={() => setCreateOpen(false)} submit={createMarket} />}
 
@@ -441,12 +482,12 @@ export default function App() {
         <div className="docs-intro" data-reveal>
           <p className="eyebrow">Developer documentation</p>
           <h2 id="docs-title">Build markets with a settlement rule reviewers can inspect.</h2>
-          <p>Use this contract as an evidence-based market primitive. The critical behavior is explicit: no trusted oracle receives a discretionary payout parameter, and all consequential resolution fields are validated under strict equivalence.</p>
+          <p>Use this contract as an evidence-based market primitive. Resolution is bound to a named authority, observed source digest, two commit-pinned records from distinct repositories, explicit freshness rules, and exact validator agreement on the independently derived result. Payouts remain derived only from recorded pools.</p>
           <a className="secondary-link" href={EXPLORER_ADDRESS} target="_blank" rel="noreferrer">Open deployed contract <ExternalLink size={16} /></a>
         </div>
         <div className="docs-grid" data-reveal>
-          <DocCard icon={<BookOpen size={20} />} title="Create a market" body="Supply a precise binary question, an HTTPS source, a decision policy that states the evidence threshold, then a close and resolution deadline." />
-          <DocCard icon={<Gavel size={20} />} title="Resolve safely" body="A resolver returns only a canonical outcome and confidence. It cannot select payout values or transfer amounts." />
+          <DocCard icon={<BookOpen size={20} />} title="Create a market" body="Supply a precise question and policy, named authority, authoritative HTTPS source, observation timestamp and SHA-256 digest, plus two raw GitHub records pinned to distinct repositories and commits." />
+          <DocCard icon={<Gavel size={20} />} title="Resolve safely" body="Validators independently fetch both records, verify exact provenance and freshness, and reapply the locked policy. Records cannot dictate the outcome or confidence." />
           <DocCard icon={<ArrowDownToLine size={20} />} title="Claim or refund" body="The contract derives settlement from recorded pools and positions. Cancellation returns each unclaimed stake exactly." />
         </div>
         <div className="code-panel" data-reveal>
@@ -473,9 +514,15 @@ export default function App() {
 function CreateMarketForm({ submitting, close, submit }: { submitting: boolean; close: () => void; submit: (event: FormEvent<HTMLFormElement>) => Promise<void> }) {
   return <form className="create-form" onSubmit={(event) => void submit(event)}>
     <div className="form-heading"><div><p className="eyebrow">New market</p><h3>Register an auditable binary proposition</h3></div><span>Immutable after Bradbury acceptance</span></div>
-    <label>Question<input name="question" maxLength={360} required placeholder="Will the registered source confirm this proposition?" /></label>
-    <label>Registered HTTPS source<input name="sourceUrl" type="url" maxLength={512} required placeholder="https://example.org/source" /></label>
-    <label>Resolution policy<textarea name="policy" maxLength={1600} required placeholder="Resolve YES only if the registered source explicitly states... Otherwise return unresolved." /></label>
+    <label className="full-field">Question<input name="question" maxLength={360} required placeholder="Will both registered evidence records confirm this proposition?" /></label>
+    <label className="full-field">Resolution policy<textarea name="policy" maxLength={1600} required placeholder="Resolve YES only if both immutable records explicitly establish... Resolve NO only if both establish the opposite." /></label>
+    <label className="full-field">Authoritative organization<input name="authorityName" maxLength={160} required placeholder="Internet Assigned Numbers Authority (IANA)" /></label>
+    <label className="full-field">Authoritative HTTPS source<input name="authoritativeSourceUrl" type="url" maxLength={512} required placeholder="https://www.iana.org/help/example-domains" /></label>
+    <div className="time-grid"><label>Source observed<input name="sourceObservedAt" type="datetime-local" required /></label><label>SHA-256 source digest<input name="sourceDigest" minLength={64} maxLength={64} pattern="[0-9a-f]{64}" required placeholder="64 lowercase hexadecimal characters" /></label></div>
+    <label className="full-field">Evidence record ID<input name="recordId" maxLength={96} required pattern="[A-Za-z0-9._-]+" placeholder="market-2026-08-18-record-01" /></label>
+    <label className="full-field">Primary commit-pinned evidence URL<input name="primaryEvidenceUrl" type="url" maxLength={512} required placeholder="https://raw.githubusercontent.com/owner/repository/40-character-commit/evidence.txt" /></label>
+    <label className="full-field">Corroborating commit-pinned evidence URL<input name="corroborationEvidenceUrl" type="url" maxLength={512} required placeholder="https://raw.githubusercontent.com/independent-owner/independent-repository/40-character-commit/evidence.txt" /></label>
+    <div className="time-grid"><label>Evidence published<input name="evidencePublishedAt" type="datetime-local" required /></label><label>Evidence expires<input name="evidenceExpiresAt" type="datetime-local" required /></label></div>
     <div className="time-grid"><label>Trading closes<input name="closeAt" type="datetime-local" required /></label><label>Resolution deadline<input name="deadlineAt" type="datetime-local" required /></label></div>
     <div className="form-actions"><button type="button" className="text-button" onClick={close}>Cancel</button><button className="primary-button" disabled={submitting} type="submit"><Plus size={18} /> Create market</button></div>
   </form>;
@@ -498,7 +545,7 @@ function MarketCard({ market, yesPosition, noPosition, now, submitting, stakeAmo
 }) {
   const nowSeconds = Math.floor(now / 1000);
   const tradingOpen = market.status === "open" && nowSeconds < Number(market.close_ts);
-  const canResolve = market.status === "closed" && nowSeconds < Number(market.resolution_deadline_ts) && market.yes_pool > 0n && market.no_pool > 0n;
+  const canResolve = CORRECTED_DEPLOYMENT_CONFIGURED && market.versioned_evidence && market.evidence_is_fresh && market.status === "closed" && nowSeconds < Number(market.resolution_deadline_ts) && market.yes_pool > 0n && market.no_pool > 0n;
   const yesKey = positionKey(market.id, "yes");
   const noKey = positionKey(market.id, "no");
   const deadlineLabel = market.status === "open" ? `Closes ${countdown(market.close_ts, now)}` : `Deadline ${countdown(market.resolution_deadline_ts, now)}`;
@@ -506,11 +553,12 @@ function MarketCard({ market, yesPosition, noPosition, now, submitting, stakeAmo
     <div className="market-main">
       <div className="market-meta"><span className={`status ${market.status}`}>{statusLabel(market.status)}</span><span>Market #{market.id.toString()}</span><span><Clock3 size={14} /> {deadlineLabel}</span><button className={`watch-button ${watched ? "watched" : ""}`} type="button" onClick={() => toggleWatchlist(market.id)} aria-label={watched ? "Remove from watchlist" : "Add to watchlist"}><Sparkles size={15} /> {watched ? "Watching" : "Watch"}</button></div>
       <h3>{market.question}</h3>
-      <div className="market-source"><FileText size={16} /><a href={market.source_url} target="_blank" rel="noreferrer">Registered source <ExternalLink size={13} /></a><span>{marketCreatedLabel(market.created_at)}</span></div>
+      <div className="market-source"><FileText size={16} /><div className="evidence-links">{market.authoritative_source_url && <a href={market.authoritative_source_url} target="_blank" rel="noreferrer">Authoritative source <ExternalLink size={13} /></a>}<a href={market.primary_evidence_url} target="_blank" rel="noreferrer">{market.versioned_evidence ? "Primary evidence" : "Legacy mutable source"} <ExternalLink size={13} /></a>{market.corroboration_evidence_url && <a href={market.corroboration_evidence_url} target="_blank" rel="noreferrer">Corroboration <ExternalLink size={13} /></a>}</div><span>{marketCreatedLabel(market.created_at)}</span></div>
+      {!market.versioned_evidence && <div className="legacy-warning"><AlertCircle size={17} /> This legacy market predates immutable corroborated evidence and cannot be resolved from this interface.</div>}
       {market.status === "resolved" && <div className="outcome-banner"><CheckCircle2 size={18} /> Resolved <strong>{market.outcome.toUpperCase()}</strong> with exact confidence {market.confidence_bps.toString()} bps.</div>}
       {market.status === "cancelled" && <div className="outcome-banner cancelled"><ArrowDownToLine size={18} /> Cancelled. Each unclaimed position can recover its exact original stake.</div>}
       <button className="details-button" type="button" onClick={setExpanded}><span>{expanded ? "Hide evidence rule" : "Inspect evidence rule"}</span><ChevronDown size={17} /></button>
-      {expanded && <div className="market-details"><div><span>Resolution policy</span><p>{market.resolution_policy}</p></div><div><span>Windows</span><p>Close: {formatDate(market.close_ts)}<br />Resolution deadline: {formatDate(market.resolution_deadline_ts)}</p></div><div><span>Settlement accounting</span><p>Paid: {formatGen(market.paid_out)} GEN<br />Refunded: {formatGen(market.refunded)} GEN</p></div></div>}
+      {expanded && <div className="market-details"><div><span>Resolution policy</span><p>{market.resolution_policy}</p></div><div><span>Source provenance</span><p>Authority: {market.authority_name || "Legacy market"}<br />Observed: {formatDate(market.source_observed_at)}<br />Digest: <code className="digest-value">{market.source_digest || "Not registered"}</code></p></div><div><span>Immutable evidence</span><p>Record: {market.evidence_record_id || "Legacy record"}<br />Primary: {market.primary_evidence_ref || "Not versioned"}<br />Corroboration: {market.corroboration_evidence_ref || "Not provided"}</p></div><div><span>Freshness and windows</span><p>Evidence published: {formatDate(market.evidence_published_at)}<br />Evidence expires: {formatDate(market.evidence_expires_at)}<br />Fresh now: {market.evidence_is_fresh ? "Yes" : "No"}<br />Close: {formatDate(market.close_ts)}<br />Resolution deadline: {formatDate(market.resolution_deadline_ts)}</p></div><div><span>Settlement accounting</span><p>Paid: {formatGen(market.paid_out)} GEN<br />Refunded: {formatGen(market.refunded)} GEN</p></div></div>}
     </div>
     <div className="market-trade" aria-label={`Trading controls for market ${market.id.toString()}`}>
       <div className="pool-summary"><span>Locked collateral</span><strong>{formatGen(market.total_staked)} GEN</strong></div>
@@ -518,7 +566,7 @@ function MarketCard({ market, yesPosition, noPosition, now, submitting, stakeAmo
       <OutcomePanel outcome="no" market={market} position={noPosition} share={impliedShare(market.no_pool, market.total_staked)} enabled={tradingOpen} amount={stakeAmounts[noKey] ?? ""} setAmount={(amount) => setStakeAmounts((current) => ({ ...current, [noKey]: amount }))} submitting={submitting} takePosition={takePosition} canClaim={canClaim(market, noPosition, "no")} claim={() => transact("claim", [Number(market.id), "no"], 0n, "Your NO claim was accepted.")} />
       <div className="lifecycle-actions">
         {market.status === "open" && !tradingOpen && <button type="button" className="minor-button" disabled={submitting} onClick={() => void transact("close_market", [Number(market.id)], 0n, "Market closed. It can now be resolved or cancelled under its registered conditions.")}>Close market</button>}
-        {canResolve && <button type="button" className="minor-button" disabled={submitting} onClick={() => void transact("resolve_market", [Number(market.id)], 0n, "Source resolution accepted. Refresh to see the agreed outcome.")}>Resolve from source</button>}
+        {canResolve && <button type="button" className="minor-button" disabled={submitting} onClick={() => void transact("resolve_market", [Number(market.id)], 0n, "Versioned evidence resolution accepted. Refresh to see the agreed outcome.")}>Resolve pinned records</button>}
         {market.can_cancel && <button type="button" className="minor-button" disabled={submitting} onClick={() => void transact("cancel_market", [Number(market.id)], 0n, "Market cancelled. Original stakes are now claimable.")}>Cancel and enable refunds</button>}
         <span>Liability: {formatGen(market.remaining_liability)} GEN</span>
       </div>

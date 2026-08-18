@@ -2,51 +2,56 @@
 
 ## Core Invariants
 
-1. A market cannot accept stakes after its close timestamp.
-2. `total_staked` equals the sum of all recorded positions for that market.
+1. Stakes are rejected after the close timestamp.
+2. Total stake equals recorded YES and NO positions.
 3. A position is paid or refunded at most once.
-4. `paid_out + refunded` never exceeds `total_staked`.
-5. `accounted_balance()` equals all market liabilities still owed to users.
-6. Resolution state is written only after validator consensus returns an exact,
-   canonical decision and confidence value.
-7. No participant, creator, or resolver has an administrative method to choose
-   an outcome or move user collateral.
+4. Paid plus refunded value never exceeds total stake.
+5. Accounted balance equals outstanding participant liability.
+6. A winner is stored only from fresh, corroborated, versioned evidence under
+   exact validator consensus.
+7. No creator, resolver, or validator supplies a payout amount.
 
-## Validator Safety
+## Evidence Threat Model
 
-The contract avoids a shape-only validator. Every validator independently:
+| Threat | Enforced response |
+| --- | --- |
+| Authoritative page changes after capture | The observed source URL, timestamp, creator-declared digest, and both commit-pinned records are immutable market fields. The original page remains an explicit audit boundary. |
+| Stale but internally consistent record | Observation must precede publication by no more than 24 hours; publication and expiry are checked at creation and resolution. |
+| One compromised repository | A second record from a different repository must agree exactly. |
+| Contradictory corroboration | No winner is stored. |
+| Metadata swapped around valid content | Record ID, question, policy, authority, source URL, source digest, and all timestamps must match the market snapshot. |
+| Evidence record declares a winner | An `Outcome` header is rejected; validators derive the result from the body and policy. |
+| Validator returns a different result | Complete canonical payload fails `strict_eq`. |
+| Evidence becomes unavailable | Resolution cannot write state; cancellation/refunds remain available. |
 
-1. receives the same immutable resolution snapshot;
-2. fetches and evaluates the registered public source under the registered
-   policy; and
-3. compares the complete canonical output through `strict_eq`.
+## Authority Boundary
 
-The canonical output contains `state`, `outcome`, and `confidence_bps`.
-`confidence_bps` is not a raw model score or a payout input: every qualifying
-source review is normalized to exactly `10000`, while every insufficient review
-is normalized to `0` and `unresolved`. There is no permitted tolerance in the
-stored payload. A changed outcome or resolved/unresolved state fails equivalence
-instead of permitting a downstream settlement discrepancy.
+Authority is a creator-registered claim made auditable by the named authority,
+authoritative source URL, observation timestamp, source digest, and both pinned
+records. The contract enforces exact binding, immutable versioning, independent
+repository corroboration, and freshness. It does not fetch the original source,
+recompute its digest, or claim that a GitHub username is inherently
+authoritative. Reviewers should verify the capture process and repository
+maintainers before treating a market as trustworthy.
 
 ## Non-Determinism Boundary
 
-The evaluator used by `strict_eq` performs only source retrieval, model review,
-normalization, and canonical serialization. It never mutates storage and never
-emits an external transfer. `resolve_market` parses and validates the agreed
-output after `strict_eq` returns; only then does it write the outcome and
-confidence to contract storage.
+`_evaluate_resolution_snapshot` uses one `strict_eq` callback containing two
+web renders and one policy judgment. The callback independently parses and
+checks both records, evaluates their untrusted bodies, and returns every
+consequential provenance and decision field. It contains no storage mutation,
+transfer, nested non-determinism, or selected payout. `resolve_market`
+validates the exact agreed payload before writing outcome and confidence.
 
-## Resolution Failure
+## Failure And Recovery
 
-If the source does not conclusively establish a YES or NO outcome, resolution
-does not change state. After the registered resolution deadline, any caller can
-cancel the market. This makes an unavailable or ambiguous source a refund path,
-not a loss of collateral or a privileged judgment call.
+Malformed, contradictory, unavailable, or stale records do not modify outcome
+state. Once evidence expires or the resolution deadline passes, cancellation
+returns each unclaimed stake exactly. This converts evidence failure into a
+refund path rather than discretionary settlement.
 
-## Transfer Safety
+## Legacy Deployment
 
-Transfers are calculated from deterministic storage. Each transfer uses
-`emit_transfer` only after all state counters and the position claim flag have
-been updated. The contract exposes both chain balance and accounted liability;
-test flows must verify that liability returns to zero after every complete
-resolved or cancelled market.
+`0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4` predates this evidence model.
+It must not be represented as the corrected deployment or used in a corrected
+submission.

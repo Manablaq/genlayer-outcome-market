@@ -2,8 +2,18 @@ import { createClient } from "genlayer-js";
 import { testnetBradbury } from "genlayer-js/chains";
 import { ExecutionResult, TransactionStatus } from "genlayer-js/types";
 
-export const CONTRACT_ADDRESS = "0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4" as const;
+export const LEGACY_CONTRACT_ADDRESS = "0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4" as const;
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const configuredAddress = import.meta.env.VITE_CONTRACT_ADDRESS?.trim() || "";
+const configuredAddressIsValid = /^0x[0-9a-fA-F]{40}$/.test(configuredAddress);
+
+export const CONTRACT_ADDRESS = (
+  configuredAddressIsValid ? configuredAddress : LEGACY_CONTRACT_ADDRESS
+) as `0x${string}`;
 export const EXPLORER_ADDRESS = `https://explorer-bradbury.genlayer.com/address/${CONTRACT_ADDRESS}`;
+export const CORRECTED_DEPLOYMENT_CONFIGURED = configuredAddressIsValid
+  && CONTRACT_ADDRESS.toLowerCase() !== LEGACY_CONTRACT_ADDRESS.toLowerCase()
+  && CONTRACT_ADDRESS.toLowerCase() !== ZERO_ADDRESS;
 
 export const readClient = createClient({ chain: testnetBradbury });
 
@@ -11,8 +21,20 @@ export type MarketRecord = {
   id: bigint;
   creator: string;
   question: string;
-  source_url: string;
   resolution_policy: string;
+  authority_name: string;
+  authoritative_source_url: string;
+  source_observed_at: bigint;
+  source_digest: string;
+  evidence_record_id: string;
+  primary_evidence_url: string;
+  primary_evidence_ref: string;
+  corroboration_evidence_url: string;
+  corroboration_evidence_ref: string;
+  evidence_published_at: bigint;
+  evidence_expires_at: bigint;
+  evidence_is_fresh: boolean;
+  versioned_evidence: boolean;
   created_at: string;
   close_ts: bigint;
   resolution_deadline_ts: bigint;
@@ -70,12 +92,41 @@ function asBoolean(value: unknown): boolean {
 
 function marketFrom(value: unknown): MarketRecord {
   const market = asRecord(value);
+  const legacySource = asString(market.source_url);
+  const primaryEvidenceUrl = asString(market.primary_evidence_url) || legacySource;
+  const primaryEvidenceRef = asString(market.primary_evidence_ref);
+  const corroborationEvidenceRef = asString(market.corroboration_evidence_ref);
+  const authorityName = asString(market.authority_name);
+  const authoritativeSourceUrl = asString(market.authoritative_source_url);
+  const sourceObservedAt = asBigInt(market.source_observed_at);
+  const sourceDigest = asString(market.source_digest);
+  const evidenceRecordId = asString(market.evidence_record_id);
   return {
     id: asBigInt(market.id),
     creator: asString(market.creator),
     question: asString(market.question),
-    source_url: asString(market.source_url),
     resolution_policy: asString(market.resolution_policy),
+    authority_name: authorityName,
+    authoritative_source_url: authoritativeSourceUrl,
+    source_observed_at: sourceObservedAt,
+    source_digest: sourceDigest,
+    evidence_record_id: evidenceRecordId,
+    primary_evidence_url: primaryEvidenceUrl,
+    primary_evidence_ref: primaryEvidenceRef,
+    corroboration_evidence_url: asString(market.corroboration_evidence_url),
+    corroboration_evidence_ref: corroborationEvidenceRef,
+    evidence_published_at: asBigInt(market.evidence_published_at),
+    evidence_expires_at: asBigInt(market.evidence_expires_at),
+    evidence_is_fresh: asBoolean(market.evidence_is_fresh),
+    versioned_evidence: Boolean(
+      authorityName
+      && authoritativeSourceUrl.startsWith("https://")
+      && sourceObservedAt > 0n
+      && /^[0-9a-f]{64}$/.test(sourceDigest)
+      && evidenceRecordId
+      && primaryEvidenceRef
+      && corroborationEvidenceRef
+    ),
     created_at: asString(market.created_at),
     close_ts: asBigInt(market.close_ts),
     resolution_deadline_ts: asBigInt(market.resolution_deadline_ts),

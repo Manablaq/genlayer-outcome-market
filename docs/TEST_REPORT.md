@@ -1,80 +1,81 @@
-# Bradbury Test Report
+# Outcome Market Corrected Release Test Report
 
-## Deployment
+**Report date:** 2026-08-18
+**Release purpose:** Reviewer remediation for immutable/versioned evidence, freshness, and corroboration
+**Corrected repository commit:** Pending release commit
+**Corrected Bradbury deployment:** Pending deployment
 
-- Contract: `0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4`
-- Network: GenLayer Bradbury Testnet
-- Live application: <https://genlayer-outcome-market.vercel.app/>
-- Contract explorer: <https://explorer-bradbury.genlayer.com/address/0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4>
-- Deployment transaction:
-  `0x4ed3dfc0a39aa2c82322c7c4698f1d11e121c8160b3409e665085e7541cc0228`
-- Initial reads: `get_market_count() = 0`, `accounted_balance() = 0`
+## Release status
 
-## Completed Bradbury Scenarios
+The corrected source and local verification are complete. A new Bradbury deployment and its finalized smoke transactions are still required before resubmission. The earlier deployment is intentionally excluded from corrected-release evidence because it predates the evidence-record model.
 
-### One-sided cancellation and exact refund
+## Reviewer request addressed
 
-Market `0` was created with a deterministic cancellation policy, funded only
-on YES, then cancelled and claimed. The final state recorded
-`refunded = 1000000000000000`, `remaining_liability = 0`, and
-`accounted_balance() = 0`.
+Resolution is now bound to two independently rendered evidence records that are:
 
-- Create: `0x996fc67e20038b42f38ce17035e80a785b0ffda12256ebe8eecd960aae4f5278`
-- YES position: `0x12cba3c7786b43bd4db0883fa0327f21b15beda3722a92616aa0cc1411b0336b`
-- Cancel: `0x664e64434c986e0be5c130c58858fb72ca22d304b8d7a23dccfc8eead6c5f42e`
-- Claim refund: `0x90fc51d02b07d7c363e0cb2f13f0158dca5ee41d14f2b82f09fc2341daaabf61`
+- immutable URLs pinned to full Git commit SHAs;
+- stored with the market before trading;
+- sourced from different repositories;
+- bound to one schema, record ID, question, policy, named authority,
+  authoritative source, observation time, source digest, publication, and
+  expiry;
+- fresh for the complete resolution window;
+- prohibited from declaring an outcome; and
+- independently evaluated under the registered policy to derive the same
+  canonical outcome and confidence.
 
-### Two-sided expiry cancellation and exact refunds
+Any contradiction, stale record, mutable URL, metadata mismatch, fetch failure, or malformed record prevents settlement. Validators compare every consequential result field exactly. Payouts remain deterministic and pool-derived.
 
-Market `1` accepted both YES and NO collateral. Its resolution deadline passed
-without a successful resolution, so it cancelled and both positions claimed
-their exact original stakes. The final state recorded
-`refunded = 2000000000000000`, `remaining_liability = 0`, and
-`accounted_balance() = 0`.
+## Local verification
 
-- Create: `0x5ade3561bec0cff5798511ef332eb6534a6ffebdc3e15f8a822e8443ee344023`
-- YES position: `0xef16a47b0a6538249381ee6472be39fd8be3373e8719280f9d303b68d1e9da04`
-- NO position: `0x930da2aa3830fae45a587ecdacb40166299b13b2aea4d993453df61d02d930e2`
-- Cancel: `0x39dd7b89f56c3a8972f66053d3682b76d1bc91f4ff4fc1f646d1392771b273fe`
-- YES refund claim: `0xf23f8cc4c4f787fb85c819e56f47f69bbd42809c3069cfcea2d5a8da17d70303`
-- NO refund claim: `0xc6cc9afaed0cbefa246de3e1b40caf0b7ec1165e11e95685b83a97fa2c4eac34`
+| Check | Result |
+|---|---|
+| Python contract compilation | PASS |
+| Contract invariant suite | PASS, 17 tests |
+| Frontend TypeScript and production build | PASS |
+| Whitespace/error marker check | PASS |
+| Production dependency audit | PASS, 0 vulnerabilities |
+| GenVM lint/deployment preflight | Required before deployment |
 
-### Two-sided source resolution and winning claim
+The automated suite covers exact canonical result binding, unexpected-field
+rejection, immutable URL validation, independent-repository corroboration,
+authority and source-digest binding, observation freshness, exact record
+headers, rejection of record-supplied outcomes and empty bodies,
+contradictory/inconclusive evidence, malformed policy judgments, deterministic
+payout arithmetic, exact refunds, exactly two renders plus one policy judgment,
+and the absence of callback storage writes or transfers.
 
-Market `5` used IANA's Example Domains page as its registered public source.
-The market closed with `0.1 GEN` on YES and `0.1 GEN` on NO. The on-chain
-resolver returned the canonical result `resolved / yes / 10000` after
-independent source review under the registered policy. The YES position was
-then claimed successfully.
+## Corrected Bradbury evidence
 
-The final contract-backed state displayed by the application was:
+Populate this table only with finalized transactions from the corrected deployment.
 
-- Status: `resolved`
-- Outcome: `yes`
-- Confidence: `10000` bps
-- Paid out: `0.2 GEN`
-- Refunded: `0 GEN`
-- Remaining liability: `0 GEN`
+| Scenario | Transaction | Final state | Status |
+|---|---|---|---|
+| Corrected contract deployment | Pending | Pending | NOT YET VERIFIED |
+| Evidence bodies support YES; validator-derived resolution | Pending | Pending | NOT YET VERIFIED |
+| YES winner claim | Pending | Pending | NOT YET VERIFIED |
+| Evidence bodies support NO; validator-derived resolution | Pending | Pending | NOT YET VERIFIED |
+| Contradictory evidence rejection | Pending | Market unchanged | NOT YET VERIFIED |
+| Authority/source/digest metadata mismatch rejection | Pending | Market unchanged | NOT YET VERIFIED |
+| Record-supplied outcome rejection | Pending | Market unchanged | NOT YET VERIFIED |
+| Stale source-observation rejection | Pending | Market unchanged | NOT YET VERIFIED |
+| Expired evidence rejection and cancellation | Pending | Cancelled | NOT YET VERIFIED |
+| Exact refund claims | Pending | Liability `0` | NOT YET VERIFIED |
+| Final `accounted_balance` | Read call pending | `0` | NOT YET VERIFIED |
 
-This exercises the consequential source-resolution path separately from the
-cancellation tests: validators determine only the canonical outcome and
-confidence, while the contract derives the exact `0.2 GEN` claim from the
-locked pools.
+## Legacy deployment disclosure
 
-## Frontend Verification
+Legacy address: [`0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4`](https://explorer-bradbury.genlayer.com/address/0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4)
 
-The `frontend` app uses `genlayer-js` 1.1.8 with the documented Bradbury read
-client and EIP-1193 provider-backed write client. It waits for an `ACCEPTED`
-receipt and requires `FINISHED_WITH_RETURN` before presenting a write as
-successful.
+This deployment demonstrated the original market lifecycle, pool accounting, cancellation, refunds, source resolution, and claims. It does **not** implement the corrected immutable/versioned evidence and corroboration rules, so it must not be supplied as the contract evidence for the corrected resubmission.
 
-Verified locally on 2026-08-14:
+## Final release declaration
 
-```sh
-cd frontend
-npm run build
-npm audit --omit=dev
-```
+Do not mark this report complete or resubmit until:
 
-The TypeScript check and Vite production build passed. The production audit
-reported `found 0 vulnerabilities`.
+1. the corrected repository commit is recorded;
+2. that exact source is deployed successfully;
+3. the Explorer source matches the repository;
+4. the Bradbury smoke matrix is finalized and linked;
+5. the production frontend targets the corrected address; and
+6. no public documentation presents the legacy address as the current release.

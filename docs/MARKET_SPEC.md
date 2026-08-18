@@ -2,63 +2,46 @@
 
 ## Purpose
 
-Outcome Market is a collateralized binary prediction-market primitive for
-GenLayer. A market has a YES and a NO side. Participants escrow GEN by taking
-one of those positions. Once the market closes, a source-backed resolution
-determines the winning side. Winners claim the entire escrowed pool pro rata.
+Outcome Market is a collateralized YES/NO prediction-market primitive for
+GenLayer. Participants escrow GEN, corroborating immutable evidence determines
+the winner, and winning claims share the complete locked pool pro rata.
 
-This is deliberately a parimutuel market rather than an AMM. The contract does
-not manufacture liquidity, borrow funds, or expose participants to an
-algorithmic pricing curve. Every successful claim is covered by value already
-held by the contract.
+This is a parimutuel market, not an AMM. It does not manufacture liquidity,
+borrow collateral, or accept an AI-selected payout.
 
 ## Lifecycle
 
-1. **Open**: The creator registers a precise question, a close timestamp, a
-   resolution deadline, a public resolution source URL, and an immutable
-   resolution policy.
-2. **Trading**: Any address may escrow GEN on YES or NO before `close_ts`.
-   A participant may add to an existing position, but cannot withdraw it while
-   the market is open.
-3. **Closed**: Trading is permanently disabled after `close_ts`.
-4. **Resolved**: A strict-equivalence source review sets one winner. Winning
-   positions can claim from the full pool. Resolution is permitted only before
-   the registered resolution deadline.
-5. **Cancelled**: If a source cannot resolve the question by
-   `resolution_deadline_ts`, anyone may cancel the market. Each participant can
-   then claim their exact stake back.
-6. **Settled**: The market reaches zero liability once all owed value has been
-   claimed.
+1. **Register**: The creator fixes the question, policy, named authority,
+   authoritative source, observation time, source digest, canonical evidence
+   record ID, two commit-pinned records from different repositories, evidence
+   validity window, trading close, and resolution deadline.
+2. **Trade**: Addresses escrow GEN on YES or NO before `close_ts`.
+3. **Close**: Trading ends permanently.
+4. **Verify**: Validators independently fetch both records, bind every
+   provenance field, and apply the registered policy to both untrusted bodies.
+5. **Resolve**: Exact consensus stores YES or NO with canonical confidence
+   `10000`.
+6. **Cancel**: One-sided, expired-evidence, or overdue unresolved markets enable
+   exact refunds.
+7. **Settle**: Liability reaches zero after all claims or refunds.
 
-## Resolution Contract
+## Immutable Resolution Snapshot
 
-The following data is fixed at market creation and is included in every
-validator's resolution snapshot:
+The complete snapshot includes:
 
-- question
-- source URL
-- resolution policy
-- close timestamp
-- supported outcomes (`yes`, `no`)
+- question and policy;
+- evidence schema and record ID;
+- authority, authoritative source URL, source observation, and source digest;
+- both pinned evidence URLs and commit references;
+- publication and expiry timestamps.
 
-`resolve_market` constructs that deterministic snapshot before entering the
-non-deterministic call. Its evaluator may fetch the public source and ask the
-model to classify it under the registered policy. It returns only canonical
-JSON with these settlement-relevant fields:
-
-```json
-{"confidence_bps":10000,"outcome":"yes","state":"resolved"}
-```
-
-The evaluator does **not** write storage, emit transfers, or call another
-non-deterministic operation. `gl.eq_principle.strict_eq` independently executes
-that evaluator for every validator and requires the canonical result to match
-exactly. Raw model confidence is only a threshold input: a score from 8,000 to
-10,000 becomes the canonical value `10000`; all other results become canonical
-`unresolved` with `0`. Consequently, outcome and confidence are both bound
-before any market state is written, without a tolerance that could change a
-settlement result. An `unresolved` result is rejected without changing market
-state, leaving the market closed for a later retry or cancellation.
+The evaluator uses one `strict_eq` callback with exactly two independent
+renders and one policy judgment. Each record must match the snapshot and may
+not provide an outcome. Validators derive the outcome and confidence from the
+two evidence bodies under the registered policy. The canonical returned
+payload contains every consequential provenance and decision value, and
+`strict_eq` requires exact agreement. The callback never writes storage or
+emits a transfer.
 
 ## Settlement
 
@@ -69,22 +52,22 @@ winning_pool = YES pool if outcome == yes, otherwise NO pool
 claim_i = floor(stake_i * total_pool / winning_pool)
 ```
 
-The final winning claimant receives `total_pool - paid_out`, rather than the
-rounded formula, so rounding dust is assigned deterministically and the total
-of all claims equals the exact escrowed pool. The contract stores cumulative
-`paid_out` and `refunded` values for every market. Its accounted liability is:
+The final winning claimant receives `total_pool - paid_out`, assigning integer
+division dust deterministically. For cancellation, every position receives its
+exact original stake. A position can be claimed only once.
+
+The accounted liability is:
 
 ```text
 sum(total_staked - paid_out - refunded)
 ```
 
-For a cancelled market, each position is refunded its exact stake. A position
-can be claimed only once in either path.
+## Scope
 
-## Scope And Non-Goals
-
-- GEN collateral only in the first release.
-- Binary (`yes`/`no`) outcomes only.
-- One immutable public source URL and one immutable policy per market.
-- No market-creator fee, protocol fee, or privileged outcome override.
-- This is testnet software, not financial advice or a production deployment.
+- GEN collateral.
+- Binary YES/NO outcomes.
+- Two versioned evidence records per market.
+- Maximum 24-hour source-observation-to-publication age.
+- Maximum 31-day evidence validity window.
+- No creator fee, protocol fee, or privileged outcome override.
+- Testnet software, not a production financial service.
