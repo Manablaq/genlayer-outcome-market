@@ -36,7 +36,7 @@ Creates an immutable YES/NO market and returns its numeric ID.
   calculated off chain and bound across both immutable records.
 - `evidence_record_id`: canonical identifier shared by both evidence records.
 - `primary_evidence_url`: raw GitHub URL pinned to a 40-character commit SHA.
-- `corroboration_evidence_url`: independently maintained, commit-pinned raw
+- `corroboration_evidence_url`: a separate-repository, commit-pinned raw
   GitHub URL from a different repository.
 - `evidence_published_at`: Unix timestamp when the evidence became valid.
 - `evidence_expires_at`: Unix timestamp after which resolution is forbidden.

@@ -11,12 +11,14 @@ source URL, when that source was observed, a 64-character lowercase source
 digest, and two corroborating records. The records must be immutable GitHub raw
 URLs pinned to exact commits and maintained in different repositories.
 
-The source digest is a creator-declared SHA-256 fingerprint calculated off
+The source digest is a publisher-recorded SHA-256 fingerprint calculated off
 chain from the observed authoritative bytes. The contract binds that digest
 exactly across the market and both records, but it does not fetch the original
 authoritative URL or recompute its digest. Reviewers must therefore audit the
-capture procedure and authority claim. This is an explicit trust boundary, not
-a claim of on-chain source authentication.
+capture procedure, retained source bytes, repository maintainers, and authority
+claim. Separate repositories may still share an owner. This is an explicit
+trust boundary, not a claim of on-chain source authentication or publisher
+independence.
 
 ## Canonical Record
 
@@ -73,7 +75,7 @@ ID, question, policy, authority, authoritative source, source observation,
 publication, expiry, and source digest. The bodies are then evaluated
 independently under the registered policy.
 
-Resolution succeeds only when the two evaluations support the same canonical
+Resolution succeeds only when the two records support the same canonical
 YES or NO result and exact confidence. Contradiction, inconclusive evidence,
 missing or extra headers, an `Outcome` header, empty evidence, fetch failure,
 stale data, or any metadata mismatch causes the transaction to fail before a

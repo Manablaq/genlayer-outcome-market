@@ -457,7 +457,7 @@ export default function App() {
           </div>
         </div>
 
-        {!CORRECTED_DEPLOYMENT_CONFIGURED && <div className="deployment-warning"><AlertCircle size={19} /><div><strong>Legacy deployment is read-only.</strong><p>Set <code>VITE_CONTRACT_ADDRESS</code> to the corrected Bradbury deployment before creating or resolving markets. Existing legacy markets remain visible for audit history.</p></div></div>}
+        {!CORRECTED_DEPLOYMENT_CONFIGURED && <div className="deployment-warning"><AlertCircle size={19} /><div><strong>Contract writes are disabled.</strong><p>The configured contract address is invalid, zero, or the read-only legacy deployment. Set <code>VITE_CONTRACT_ADDRESS</code> to the verified Bradbury release address.</p></div></div>}
 
         {createOpen && <CreateMarketForm submitting={submitting} close={() => setCreateOpen(false)} submit={createMarket} />}
 

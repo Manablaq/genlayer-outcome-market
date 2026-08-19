@@ -11,15 +11,15 @@
   "dependencies": {
     "genlayer-js": "1.1.8",
     "lucide-react": "0.468.0",
-    "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "viem": "2.55.16"
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "viem": "2.55.19"
   },
   "devDependencies": {
-    "@types/react": "19.0.8",
-    "@types/react-dom": "19.0.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "4.3.4",
     "typescript": "5.7.2",
-    "vite": "6.0.7"
+    "vite": "6.4.3"
   }
 }

@@ -17,7 +17,7 @@
 | --- | --- |
 | Authoritative page changes after capture | The observed source URL, timestamp, creator-declared digest, and both commit-pinned records are immutable market fields. The original page remains an explicit audit boundary. |
 | Stale but internally consistent record | Observation must precede publication by no more than 24 hours; publication and expiry are checked at creation and resolution. |
-| One compromised repository | A second record from a different repository must agree exactly. |
+| One altered repository | A second commit-pinned record from a different repository must agree exactly. Repository separation is not asserted to prove separate ownership. |
 | Contradictory corroboration | No winner is stored. |
 | Metadata swapped around valid content | Record ID, question, policy, authority, source URL, source digest, and all timestamps must match the market snapshot. |
 | Evidence record declares a winner | An `Outcome` header is rejected; validators derive the result from the body and policy. |
@@ -28,11 +28,12 @@
 
 Authority is a creator-registered claim made auditable by the named authority,
 authoritative source URL, observation timestamp, source digest, and both pinned
-records. The contract enforces exact binding, immutable versioning, independent
-repository corroboration, and freshness. It does not fetch the original source,
+records. The contract enforces exact binding, immutable versioning,
+repository-separated corroboration, and freshness. It does not fetch the original source,
 recompute its digest, or claim that a GitHub username is inherently
-authoritative. Reviewers should verify the capture process and repository
-maintainers before treating a market as trustworthy.
+authoritative. Different repositories may be controlled by the same publisher.
+Reviewers should verify the retained source bytes, capture process, commit
+history, and repository maintainers before treating a market as trustworthy.
 
 ## Non-Determinism Boundary
 

@@ -3,15 +3,21 @@ import { testnetBradbury } from "genlayer-js/chains";
 import { ExecutionResult, TransactionStatus } from "genlayer-js/types";
 
 export const LEGACY_CONTRACT_ADDRESS = "0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4" as const;
+export const RELEASE_CONTRACT_ADDRESS = "0xFE05AB8678F9EE7035E53579dE229CCed93FE5bF" as const;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const configuredAddress = import.meta.env.VITE_CONTRACT_ADDRESS?.trim() || "";
+const hasConfiguredAddress = configuredAddress.length > 0;
 const configuredAddressIsValid = /^0x[0-9a-fA-F]{40}$/.test(configuredAddress);
 
 export const CONTRACT_ADDRESS = (
-  configuredAddressIsValid ? configuredAddress : LEGACY_CONTRACT_ADDRESS
+  !hasConfiguredAddress
+    ? RELEASE_CONTRACT_ADDRESS
+    : configuredAddressIsValid
+      ? configuredAddress
+      : ZERO_ADDRESS
 ) as `0x${string}`;
 export const EXPLORER_ADDRESS = `https://explorer-bradbury.genlayer.com/address/${CONTRACT_ADDRESS}`;
-export const CORRECTED_DEPLOYMENT_CONFIGURED = configuredAddressIsValid
+export const CORRECTED_DEPLOYMENT_CONFIGURED = /^0x[0-9a-fA-F]{40}$/.test(CONTRACT_ADDRESS)
   && CONTRACT_ADDRESS.toLowerCase() !== LEGACY_CONTRACT_ADDRESS.toLowerCase()
   && CONTRACT_ADDRESS.toLowerCase() !== ZERO_ADDRESS;
 
@@ -269,12 +275,12 @@ export async function sendContractTransaction(
   );
   const receipt = await readClient.waitForTransactionReceipt({
     hash: hash as TransactionHash,
-    status: TransactionStatus.ACCEPTED,
+    status: TransactionStatus.FINALIZED,
     interval: 3_000,
-    retries: 80,
+    retries: 240,
   });
   if (receipt.txExecutionResultName !== ExecutionResult.FINISHED_WITH_RETURN) {
-    throw new Error(`Consensus accepted the transaction, but execution returned ${receipt.txExecutionResultName ?? "no result"}.`);
+    throw new Error(`The finalized transaction returned ${receipt.txExecutionResultName ?? "no execution result"}.`);
   }
   return { hash, execution: receipt.txExecutionResultName };
 }

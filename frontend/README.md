@@ -4,13 +4,17 @@ Vite and React interface for the Outcome Market contract on GenLayer Bradbury.
 
 ## Contract configuration
 
-Create `frontend/.env.local` from `.env.example` and set the full corrected deployment address:
+The production release defaults to the audited Bradbury address. To override it,
+create `frontend/.env.local` from `.env.example` and provide a full address:
 
 ```bash
-VITE_CONTRACT_ADDRESS=0xYOUR_CORRECTED_BRADBURY_ADDRESS
+VITE_CONTRACT_ADDRESS=0xFE05AB8678F9EE7035E53579dE229CCed93FE5bF
 ```
 
-The application fails closed for writes when the value is missing, malformed, the zero address, or the known legacy address. Legacy market data remains readable for historical transparency, but the UI will not create or resolve markets against that deployment.
+An omitted value uses the audited release address compiled into the frontend.
+An explicitly malformed, zero, or known legacy value fails closed and disables
+writes. This prevents a broken production environment variable from silently
+selecting an unintended contract.
 
 ## Local development
 
@@ -46,8 +50,10 @@ Resolution controls are disabled when the deployment is legacy, evidence metadat
 
 ## Production deployment
 
-1. Deploy the corrected contract source to Bradbury.
-2. Add `VITE_CONTRACT_ADDRESS` to the production environment.
-3. Redeploy the frontend from the matching repository commit.
+1. Verify the finalized contract with `node scripts/verify-deployment.mjs` from
+   the repository root.
+2. Optionally set `VITE_CONTRACT_ADDRESS` to the audited release address in the
+   production environment.
+3. Redeploy the frontend from the verified repository commit.
 4. Verify the contract link opens the corrected Explorer address.
 5. Exercise a read and write flow before publishing submission evidence.
