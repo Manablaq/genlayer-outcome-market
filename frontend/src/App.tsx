@@ -394,7 +394,7 @@ export default function App() {
           <div className="hero-kicker"><span className="live-dot" /> Source-backed GEN markets, live on Bradbury</div>
           <h1 id="app-title">A prediction market that settles from evidence, not vibes.</h1>
           <p>
-            Register the proposition, named authority, observed source digest, two independently maintained commit-pinned evidence records, and freshness window before anyone trades. Validators derive the outcome by applying the locked policy to both records.
+            Register the proposition, named authority, observed source digest, two commit-pinned evidence records from separate repositories, and freshness window before anyone trades. Validators derive the outcome by applying the locked policy to both records.
           </p>
           <div className="hero-actions">
             <button className="primary-button hero-primary" type="button" onClick={() => goTo("markets")}><CircleDollarSign size={18} /> Explore markets</button>
@@ -521,7 +521,7 @@ function CreateMarketForm({ submitting, close, submit }: { submitting: boolean; 
     <div className="time-grid"><label>Source observed<input name="sourceObservedAt" type="datetime-local" required /></label><label>SHA-256 source digest<input name="sourceDigest" minLength={64} maxLength={64} pattern="[0-9a-f]{64}" required placeholder="64 lowercase hexadecimal characters" /></label></div>
     <label className="full-field">Evidence record ID<input name="recordId" maxLength={96} required pattern="[A-Za-z0-9._-]+" placeholder="market-2026-08-18-record-01" /></label>
     <label className="full-field">Primary commit-pinned evidence URL<input name="primaryEvidenceUrl" type="url" maxLength={512} required placeholder="https://raw.githubusercontent.com/owner/repository/40-character-commit/evidence.txt" /></label>
-    <label className="full-field">Corroborating commit-pinned evidence URL<input name="corroborationEvidenceUrl" type="url" maxLength={512} required placeholder="https://raw.githubusercontent.com/independent-owner/independent-repository/40-character-commit/evidence.txt" /></label>
+    <label className="full-field">Corroborating commit-pinned evidence URL<input name="corroborationEvidenceUrl" type="url" maxLength={512} required placeholder="https://raw.githubusercontent.com/separate-owner/separate-repository/40-character-commit/evidence.txt" /></label>
     <div className="time-grid"><label>Evidence published<input name="evidencePublishedAt" type="datetime-local" required /></label><label>Evidence expires<input name="evidenceExpiresAt" type="datetime-local" required /></label></div>
     <div className="time-grid"><label>Trading closes<input name="closeAt" type="datetime-local" required /></label><label>Resolution deadline<input name="deadlineAt" type="datetime-local" required /></label></div>
     <div className="form-actions"><button type="button" className="text-button" onClick={close}>Cancel</button><button className="primary-button" disabled={submitting} type="submit"><Plus size={18} /> Create market</button></div>
