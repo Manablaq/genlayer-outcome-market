@@ -14,7 +14,9 @@ Do not resubmit until every gate is complete.
 
 ## Evidence Gate
 
-1. Publish a primary and corroborating fixture in different repositories.
+1. Publish a primary and corroborating fixture in different repositories. The
+   Bradbury release fixtures and their trust limitation are in
+   [`SMOKE_FIXTURES.md`](SMOKE_FIXTURES.md).
 2. Pin both raw URLs to full lowercase commit SHAs.
 3. Record the named authority, HTTPS authoritative source, observation time,
    and lowercase 64-character source digest before market creation.
@@ -27,7 +29,7 @@ Do not resubmit until every gate is complete.
 ## Bradbury Gate
 
 1. Deploy the exact committed corrected source as a new contract.
-2. Record the new address and accepted deployment transaction.
+2. Record the new address and finalized deployment transaction.
 3. Verify Explorer source matches the repository byte-for-byte.
 4. Run the full smoke matrix in `TEST_PLAN.md`.
 5. Wait for finalization and verify execution results, not consensus labels
