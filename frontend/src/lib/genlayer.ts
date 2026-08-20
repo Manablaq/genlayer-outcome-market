@@ -4,22 +4,24 @@ import { ExecutionResult, TransactionStatus } from "genlayer-js/types";
 
 export const LEGACY_CONTRACT_ADDRESS = "0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4" as const;
 export const RELEASE_CONTRACT_ADDRESS = "0xFE05AB8678F9EE7035E53579dE229CCed93FE5bF" as const;
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const configuredAddress = import.meta.env.VITE_CONTRACT_ADDRESS?.trim() || "";
-const hasConfiguredAddress = configuredAddress.length > 0;
-const configuredAddressIsValid = /^0x[0-9a-fA-F]{40}$/.test(configuredAddress);
+const configuredAddressMatchesRelease =
+  configuredAddress.toLowerCase() === RELEASE_CONTRACT_ADDRESS.toLowerCase();
 
+// Ignore stale or unintended deployment overrides. The frontend must always
+// use the audited Bradbury release unless the configured value is that exact
+// release address.
 export const CONTRACT_ADDRESS = (
-  !hasConfiguredAddress
-    ? RELEASE_CONTRACT_ADDRESS
-    : configuredAddressIsValid
-      ? configuredAddress
-      : ZERO_ADDRESS
+  configuredAddressMatchesRelease
+    ? configuredAddress
+    : RELEASE_CONTRACT_ADDRESS
 ) as `0x${string}`;
-export const EXPLORER_ADDRESS = `https://explorer-bradbury.genlayer.com/address/${CONTRACT_ADDRESS}`;
-export const CORRECTED_DEPLOYMENT_CONFIGURED = /^0x[0-9a-fA-F]{40}$/.test(CONTRACT_ADDRESS)
-  && CONTRACT_ADDRESS.toLowerCase() !== LEGACY_CONTRACT_ADDRESS.toLowerCase()
-  && CONTRACT_ADDRESS.toLowerCase() !== ZERO_ADDRESS;
+
+export const EXPLORER_ADDRESS =
+  `https://explorer-bradbury.genlayer.com/address/${CONTRACT_ADDRESS}`;
+
+export const CORRECTED_DEPLOYMENT_CONFIGURED =
+  CONTRACT_ADDRESS.toLowerCase() === RELEASE_CONTRACT_ADDRESS.toLowerCase();
 
 export const readClient = createClient({ chain: testnetBradbury });
 
