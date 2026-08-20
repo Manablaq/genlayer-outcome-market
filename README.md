@@ -58,7 +58,7 @@ the corrected release.
 - [Market protocol](docs/MARKET_SPEC.md)
 - [Security model](docs/SECURITY_MODEL.md)
 - [Backend API](docs/BACKEND_API.md)
-- [Test plan](docs/TEST_PLAN.md)
+- [Historical Bradbury qualification plan](docs/archive/BRADBURY_QUALIFICATION_PLAN.md)
 - [Deployment gate](docs/DEPLOYMENT_GATE.md)
 - [Bradbury test report](docs/TEST_REPORT.md)
 - [Release record](docs/RELEASE.md)
