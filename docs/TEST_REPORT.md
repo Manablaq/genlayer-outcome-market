@@ -1,91 +1,226 @@
-# Outcome Market Corrected Release Test Report
+# Outcome Market — Bradbury Release Evidence
 
-**Report date:** 2026-08-19
-**Release purpose:** Reviewer remediation for immutable/versioned evidence, freshness, and corroboration
-**Deployed contract source commit:** [`74756aaecbb2f2055d58b7dd1d096ec57612e8a1`](https://github.com/Manablaq/genlayer-outcome-market/commit/74756aaecbb2f2055d58b7dd1d096ec57612e8a1)
-**Corrected Bradbury deployment:** [`0xFE05AB8678F9EE7035E53579dE229CCed93FE5bF`](https://explorer-bradbury.genlayer.com/address/0xFE05AB8678F9EE7035E53579dE229CCed93FE5bF)
+**Report date:** 2026-08-20
+**Release purpose:** Reviewer remediation for authoritative, immutable/versioned evidence with explicit freshness and corroboration rules
+**Corrected Bradbury deployment:** `0xFE05AB8678F9EE7035E53579dE229CCed93FE5bF`
+**Deployed remediation source commit:** `74756aaecbb2f2055d58b7dd1d096ec57612e8a1`
 
-## Release status
+## Release summary
 
-The corrected source is deployed and finalized on Bradbury. Deployment calldata
-matches the repository contract byte-for-byte. Finalized lifecycle smoke
-transactions and negative evidence cases are still required before
-resubmission. The legacy deployment remains excluded because it predates the
-evidence-record model.
+The corrected Outcome Market deployment binds resolution to immutable, commit-pinned evidence records and applies explicit provenance, freshness, corroboration, and canonical-settlement requirements.
 
-## Reviewer request addressed
+Live Bradbury verification demonstrated the reviewer-critical remediation properties:
 
-Resolution is now bound to two independently rendered evidence records that are:
+- mutable evidence URLs are rejected;
+- corroborating evidence must come from a distinct repository;
+- stale source observations are rejected;
+- settlement metadata is bound to the configured market;
+- contradictory evidence fails closed;
+- provenance and source-digest mismatches fail closed;
+- malformed evidence fails closed;
+- a valid evidence-bound YES market finalized successfully;
+- the winning position received the full pool-derived payout;
+- cancellation and refunds conserved collateral;
+- final `accounted_balance` and `contract_balance` both returned `0`.
 
-- immutable URLs pinned to full Git commit SHAs;
-- stored with the market before trading;
-- sourced from different repositories;
-- bound to one schema, record ID, question, policy, named authority,
-  authoritative source, observation time, source digest, publication, and
-  expiry;
-- fresh for the complete resolution window;
-- prohibited from declaring an outcome; and
-- independently evaluated under the registered policy to derive the same
-  canonical outcome and confidence.
+## Deployment provenance
 
-Any contradiction, stale record, mutable URL, metadata mismatch, fetch failure, or malformed record prevents settlement. Validators compare every consequential result field exactly. Payouts remain deterministic and pool-derived.
+Corrected contract:
 
-## Local verification
+`0xFE05AB8678F9EE7035E53579dE229CCed93FE5bF`
 
-| Check | Result |
-|---|---|
-| Python contract compilation | PASS |
-| Contract invariant suite | PASS, 17 tests |
-| Frontend TypeScript and production build | PASS |
-| Whitespace/error marker check | PASS |
-| Full dependency audit | PASS, 0 vulnerabilities |
-| Deployment receipt and source reproduction | PASS |
-| Commit-pinned positive evidence fixtures | PASS; verified against authoritative source bytes |
-| GenLayer CLI preflight | CLI `0.39.2` exposes no standalone lint command; deployed source compilation and five-validator finalized execution passed |
+Deployment transaction:
 
-The automated suite covers exact canonical result binding, unexpected-field
-rejection, immutable URL validation, repository-separated corroboration,
-authority and source-digest binding, observation freshness, exact record
-headers, rejection of record-supplied outcomes and empty bodies,
-contradictory/inconclusive evidence, malformed policy judgments, deterministic
-payout arithmetic, exact refunds, exactly two renders plus one policy judgment,
-and the absence of callback storage writes or transfers.
+`0x2091634bde3647f37c3baaa4ce5fddd2034a91ee0803c535ba8f19cda4e700ef`
 
-The live fixture URLs, exact commit references, recorded source digest, and
-negative test inputs are in [`SMOKE_FIXTURES.md`](SMOKE_FIXTURES.md). The
-fixtures prove contract behavior, not independent publisher ownership; that
-limitation is disclosed in the evidence specification and security model.
+The deployed remediation source is associated with commit:
 
-## Corrected Bradbury evidence
+`74756aaecbb2f2055d58b7dd1d096ec57612e8a1`
 
-Populate this table only with finalized transactions from the corrected deployment.
+## Immutable evidence enforcement
 
-| Scenario | Transaction | Final state | Status |
-|---|---|---|---|
-| Corrected contract deployment | [`0x209163…e700ef`](https://explorer-bradbury.genlayer.com/tx/0x2091634bde3647f37c3baaa4ce5fddd2034a91ee0803c535ba8f19cda4e700ef) | `FINALIZED`, `AGREE`, `FINISHED_WITH_RETURN`; 5/5 revealed votes agree | PASS |
-| Evidence bodies support YES; validator-derived resolution | Pending | Pending | NOT YET VERIFIED |
-| YES winner claim | Pending | Pending | NOT YET VERIFIED |
-| Evidence bodies support NO; validator-derived resolution | Pending | Pending | NOT YET VERIFIED |
-| Contradictory evidence rejection | Pending | Market unchanged | NOT YET VERIFIED |
-| Authority/source/digest metadata mismatch rejection | Pending | Market unchanged | NOT YET VERIFIED |
-| Record-supplied outcome rejection | Pending | Market unchanged | NOT YET VERIFIED |
-| Stale source-observation rejection | Pending | Market unchanged | NOT YET VERIFIED |
-| Expired evidence rejection and cancellation | Pending | Cancelled | NOT YET VERIFIED |
-| Exact refund claims | Pending | Liability `0` | NOT YET VERIFIED |
-| Initial deployment `accounted_balance` | Read call | `0` with `get_market_count = 0` before smoke execution | PASS (baseline only) |
-| Final post-smoke `accounted_balance` | Read call pending | `0` | NOT YET VERIFIED |
+### Mutable evidence rejection
 
-## Legacy deployment disclosure
+Transaction:
 
-Legacy address: [`0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4`](https://explorer-bradbury.genlayer.com/address/0x1b238921b258d253C3f0e3D0a629E31a62EBdFA4)
+`0x4f5b4c7b7a519c4c6d75b84cb4a1d5aa187d61e7cac46394a993cd915f5b0864`
 
-This deployment demonstrated the original market lifecycle, pool accounting, cancellation, refunds, source resolution, and claims. It does **not** implement the corrected immutable/versioned evidence and corroboration rules, so it must not be supplied as the contract evidence for the corrected resubmission.
+A deliberately mutable GitHub branch URL was rejected with `FINISHED_WITH_ERROR`. No market was created.
 
-## Final release declaration
+### Distinct corroboration repository enforcement
 
-Do not mark this report complete or resubmit until:
+Transaction:
 
-1. the Bradbury smoke matrix is finalized and linked;
-2. the production frontend targets the corrected address;
-3. all resolved and cancelled flows reconcile to zero liability; and
-4. no public documentation presents the legacy address as the current release.
+`0x6b3bca5b8a619c91f088cb77d3306d11f1b3d4f5ef419893176e7f1aa31f7fcd`
+
+Primary and corroborating evidence were deliberately pointed to the same repository. Creation was rejected and no market state was created.
+
+### Freshness enforcement
+
+Transaction:
+
+`0xbc227a6bb6637db55bdcf74fc521762c4bff6cb964feefdec294e80d605bda10`
+
+A source observation outside the permitted freshness bound was rejected.
+
+## Successful evidence-bound settlement
+
+A clean market was created using two distinct commit-pinned evidence repositories together with a versioned GenLayer Labs source.
+
+Creation transaction:
+
+`0xa0258ba1ac50c88ff18015803dc856cb54f4e716dc29058562a7a5a3f6fa1cd6`
+
+Before resolution, Finalized state showed:
+
+- YES pool: `1000000000000000000`
+- NO pool: `1000000000000000000`
+- total staked: `2000000000000000000`
+- evidence fresh: `true`
+
+Resolution transaction:
+
+`0xc2307093ef90191abd49d62a7697babcb70ff2ec51725c820ce52269b0c59592`
+
+Finalized market state:
+
+- status: `resolved`
+- outcome: `yes`
+- confidence: `10000`
+
+The settlement remained bound to the expected authority, source URL, source digest, evidence record ID, primary evidence reference, corroborating evidence reference, and evidence timestamps.
+
+## Winner payout
+
+Claim transaction:
+
+`0x31bb239de7ff0166b7005d2ab6f4cf97c838f574cbe5cfd1c99c6011f8254ea0`
+
+The Bradbury explorer showed an outbound internal message of:
+
+`2.00 GEN`
+
+Finalized state showed:
+
+- winning position `claimed = true`
+- `paid_out = 2000000000000000000`
+- `remaining_liability = 0`
+
+The payout matched the complete two-sided market pool.
+
+## Fail-closed evidence handling
+
+### Contradictory evidence
+
+Transaction:
+
+`0x3249d7039e7b09560c58a147008cdbb69d6181da4c0ea6557b5aaf3b114fbe59`
+
+Execution rejected settlement as inconclusive:
+
+`versioned evidence is inconclusive; cancel after evidence expiry or deadline`
+
+Finalized state remained:
+
+- status: `closed`
+- outcome: `none`
+- confidence: `0`
+
+No settlement occurred.
+
+### Provenance / source-digest mismatch
+
+Transaction:
+
+`0xe373cc5a97f64e5df3aa0e77f42b37513894379f3aa4e0505c50976cd2c3ac5d`
+
+Execution rejected the record with:
+
+`corroboration evidence source digest does not match`
+
+Finalized market state remained unresolved.
+
+### Malformed evidence
+
+Transaction:
+
+`0xb473576704f4d125816736a308dc0393cf1506c28a33b1ecf9820463cbcf857b`
+
+Execution rejected the record with:
+
+`primary evidence headers are incomplete`
+
+The malformed record did not produce a settlement.
+
+## Additional consensus observation
+
+During valid NO-evidence qualification, transaction
+
+`0x8af414ce97f6ff634669ca70317b93d0be986ed6a3bbcafe99f0968e17e962dc`
+
+produced the canonical execution result:
+
+- state: `resolved`
+- outcome: `no`
+- confidence: `10000`
+
+The Bradbury consensus path later finalized as undetermined, and Finalized contract state remained closed and unresolved. This is recorded as a network consensus observation and is not used as successful settlement evidence.
+
+## Cancellation and collateral recovery
+
+Markets used for negative and consensus-path verification were cancelled after their applicable resolution windows.
+
+Cancelled positions were refunded at their original stake values.
+
+The valid-NO qualification market ultimately showed:
+
+- `refunded = 2000000000000000000`
+- `remaining_liability = 0`
+- status: `cancelled`
+
+The remaining negative-test markets were also cancelled and their positions were reclaimed.
+
+## Final accounting
+
+After cleanup, Finalized reads returned:
+
+- `accounted_balance = 0`
+- `contract_balance = 0`
+
+No live qualification collateral remains in the corrected deployment.
+
+## Local release verification
+
+The release gate was rerun from a clean clone of `origin/main`.
+
+Results:
+
+- Python invariant suite: **17 tests passed**
+- frontend production build: **passed**
+- `npm audit --omit=dev`: **0 vulnerabilities**
+- `git diff --check`: **clean**
+
+The invariant suite covers evidence binding, freshness, canonical output, record parsing, nondeterminism boundaries, cancellation, refunds, and payout conservation.
+
+## Qualification scope
+
+This report records the live Bradbury scenarios and release checks actually used to validate the reviewer-requested evidence-binding remediation.
+
+Execution results, consensus outcomes, and Finalized contract state are kept separate where those distinctions are material.
+
+## Release conclusion
+
+The corrected deployment demonstrates that:
+
+- authoritative evidence can be bound to immutable versioned records;
+- freshness is explicitly enforced;
+- corroboration is repository-separated;
+- settlement metadata is bound to the market configuration;
+- contradictory, mismatched, or malformed evidence fails closed;
+- valid evidence can produce a finalized settlement;
+- winner payout conserves the full market pool;
+- cancellation and refunds conserve collateral;
+- final contract liability and contract balance return to zero.
+
+**Current Bradbury deployment:**
+`0xFE05AB8678F9EE7035E53579dE229CCed93FE5bF`

@@ -31,7 +31,7 @@ Do not resubmit until every gate is complete.
 1. Deploy the exact committed corrected source as a new contract.
 2. Record the new address and finalized deployment transaction.
 3. Verify Explorer source matches the repository byte-for-byte.
-4. Run the full smoke matrix in `TEST_PLAN.md`.
+4. Run the reviewer-critical Bradbury verification scenarios and record the resulting evidence in `TEST_REPORT.md`.
 5. Wait for finalization and verify execution results, not consensus labels
    alone.
 6. Confirm complete resolved and cancelled flows return
